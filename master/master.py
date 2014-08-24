@@ -1,49 +1,92 @@
-import json
+# No shebang line, this module is meant to be imported
+#
+# Copyright 2014 Oliver Palmer
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import yaml
 from buildbot.buildslave import BuildSlave
-from buildbot.changes.gitpoller import GitPoller
+from buildbot.buildslave.ec2 import EC2LatentBuildSlave
+from buildbot.config import BuilderConfig
+from buildbot.status.web import authz, auth
+from buildbot.status import html
 
-with open("slaves.yml", "r") as slaves:
-  slaves = yaml.load(slaves)
+from master.changesource import GitHubHook  # TODO: fix import
 
+file_cfg = {}
 
-config = BuildmasterConfig = dict(
-  slaves=[
-    BuildSlave("deb-7-0", slaves["deb-7-0"]["password"]),
-    BuildSlave("osx-2012-0", slaves["win-2012-0"]["password"]),
-    BuildSlave("win-2012-0", slaves["win-2012-0"]["password"]),
-  ]
-)
+# Load configuration data
+with open("private.yml", "r") as private_yaml_file:
+    file_cfg.update(yaml.load(private_yaml_file))
 
-####### BUILDSLAVES
+with open("config.yml", "r") as public_yaml_file:
+    file_cfg.update(yaml.load(public_yaml_file))
 
-
-# The 'slaves' list defines the set of recognized buildslaves. Each element is
-# a BuildSlave object, specifying a unique slave name and password.  The same
-# slave name and password must be configured on the slave.
-
-config['slaves'] = [BuildSlave("example-slave", "pass")]
-
-# 'protocols' contains information about protocols which master will use for
-# communicating with slaves.
-# You must define at least 'port' option that slaves could connect to your master
-# with this protocol.
-# 'port' must match the value configured into the buildslaves (with their
-# --master option)
-config['protocols'] = {'pb': {'port': 9989}}
-
-####### CHANGESOURCES
-
-# the 'change_source' setting tells the buildmaster how it should find out
-# about source code changes.  Here we point to the buildbot clone of pyflakes.
+buildslave_matrix = {
+    "linux": [],
+    "mac": [],
+    "windows"
+}
 
 
-config['change_source'] = []
-config['change_source'].append(GitPoller(
-        'git://github.com/buildbot/pyflakes.git',
-        workdir='gitpoller-workdir', branch='master',
-        pollinterval=300))
+# Main configuration read in the .tac file
+config = BuildmasterConfig = {
+    "title": "PyFarm",
+    "titleURL": "https://build.pyfarm.net",
+    "buildbotURL": "http://127.0.0.1:8010",
+    "db_url": file_cfg["db"],
+    "status": [
+
+    ],
+    "slaves": [],
+    "protocols": {
+        "pb": {"port": 9989}
+    },
+    "change_source": [
+        GitHubHook(
+            secret=file_cfg["github_changesource"]["secret"])
+    ],
+    "builders": [
+    ],
+
+}
+
+# Persistent build slave(s)
+for name, cfg in file_cfg["slaves"]["persistent"].items():
+    file_cfg["buildslave_matrix"][cfg.pop("type")] = name
+    config["slaves"].append(
+        BuildSlave(name, cfg.pop("passwd"), **cfg))
+
+# AWS build slave(s)
+for name, cfg in file_cfg["slaves"]["aws"].items():
+    file_cfg["buildslave_matrix"][cfg.pop("type")] = name
+    config["slaves"].append(
+        EC2LatentBuildSlave(
+            name, cfg.pop("passwd"), cfg.pop("instance_type"), **cfg))
+
+# Construct the builder matrix
+for project, python_versions in file_cfg["python_versions"].items():
+    for python_version in python_versions:
+        for platform, buildslaves in buildslave_matrix.items():
+            builder = BuilderConfig(
+                name="{project}-{platform}-{python_version}".format(**locals()),
+                slavenames=buildslaves,
+                factory=None  # TODO,
+                #mergeRequests=None # TODO?
+            )
+
+
+
 
 ####### SCHEDULERS
 
@@ -79,7 +122,7 @@ factory.addStep(Git(repourl='git://github.com/buildbot/pyflakes.git', mode='incr
 # run the tests (note that this will require that 'trial' is installed)
 factory.addStep(ShellCommand(command=["trial", "pyflakes"]))
 
-from buildbot.config import BuilderConfig
+
 
 config['builders'] = []
 config['builders'].append(
@@ -95,9 +138,6 @@ config['builders'].append(
 
 config['status'] = []
 
-from buildbot.status import html
-from buildbot.status.web import authz, auth
-
 authz_cfg=authz.Authz(
     # change any of these to True to enable; see the manual for more
     # options
@@ -111,28 +151,3 @@ authz_cfg=authz.Authz(
     cancelPendingBuild = False,
 )
 config['status'].append(html.WebStatus(http_port=8010, authz=authz_cfg))
-
-####### PROJECT IDENTITY
-
-# the 'title' string will appear at the top of this buildbot
-# installation's html.WebStatus home page (linked to the
-# 'titleURL') and is embedded in the title of the waterfall HTML page.
-
-config['title'] = "Pyflakes"
-config['titleURL'] = "https://launchpad.net/pyflakes"
-
-# the 'buildbotURL' string should point to the location where the buildbot's
-# internal web server (usually the html.WebStatus page) is visible. This
-# typically uses the port number set in the Waterfall 'status' entry, but
-# with an externally-visible host name which the buildbot cannot figure out
-# without some help.
-
-config['buildbotURL'] = "http://localhost:8010/"
-
-####### DB URL
-
-config['db'] = {
-    # This specifies what database buildbot uses to store its state.  You can leave
-    # this at its default for all but the largest installations.
-    'db_url' : "sqlite:///state.sqlite",
-}
