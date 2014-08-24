@@ -1,2 +1,3 @@
 virtualenv
+PyYaml
 buildbot==0.8.9
