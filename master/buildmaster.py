@@ -35,7 +35,7 @@ with open("config.yml", "r") as public_yaml_file:
 buildslave_matrix = {
     "linux": [],
     "mac": [],
-    "windows"
+    "windows": []
 }
 
 
