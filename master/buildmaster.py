@@ -21,7 +21,7 @@ from buildbot.config import BuilderConfig
 from buildbot.status.web import authz, auth
 from buildbot.status import html
 
-from master.changesource import GitHubHook  # TODO: fix import
+from master.changesource import GitHubBuildBot
 
 file_cfg = {}
 
@@ -53,8 +53,7 @@ config = BuildmasterConfig = {
         "pb": {"port": 9989}
     },
     "change_source": [
-        GitHubHook(
-            secret=file_cfg["github_changesource"]["secret"])
+        GitHubBuildBot(file_cfg["github_changesource"]["secret"])
     ],
     "builders": [
     ],
