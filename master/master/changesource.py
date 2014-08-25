@@ -19,8 +19,9 @@ Contains the change source or sources that the master uses
 to run builds.
 """
 
+from master._changesource import GitHubBuildBot
+
 
 # TODO: replace with the real thing
-class GitHubHook(object):
-    def __init__(self, *args, **kwargs):
-        pass
+class GitHubHook(GitHubBuildBot):
+    pass
