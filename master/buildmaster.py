@@ -22,6 +22,7 @@ from buildbot.status.web import authz, auth
 from buildbot.status import html
 
 from master.changesource import GitHubBuildBot
+from master.builders import get_build_factory
 
 file_cfg = {}
 
@@ -80,9 +81,9 @@ for project, python_versions in file_cfg["python_versions"].items():
             builder = BuilderConfig(
                 name="{project}-{platform}-{python_version}".format(**locals()),
                 slavenames=buildslaves,
-                factory=None  # TODO,
-                #mergeRequests=None # TODO?
-            )
+                factory=get_build_factory(project, platform, python_version),
+                mergeRequests=True)
+            config["builders"].append(builder)
 
 
 
