@@ -20,20 +20,30 @@ db: "sqlite:///state.sqlite"
 slaves:
   persistent:
     deb-7-0:
+      enabled: True
       type: linux
       python: [2.6, 2.7, 3.2, 3.3, 3.4]
       passwd: foobar
 
     osx-mav-0:
+      enabled: True
       type: mac
       python: [2.6, 2.7, 3.4]
       passwd: foobar
 
   aws:
     win-2012-0:
+      enabled: False
       type: windows
       python: [2.6, 2.7, 3.2, 3.3, 3.4]
       passwd: foobar
+
+      # Required
+      instance_type: t2.micro
+      ami: ami
+      identifier: public_key
+      secret_identifier: private_key
+
 
 
 github_changesource:
