@@ -78,6 +78,6 @@ def get_build_factory(project, platform, pyversion):
     # Destroy the virtualenv
     factory.addStep(
         RemoveDirectory(
-            Property("virtualenv"), flunkOnFailure=False, flunkOnFailure=False))
+            Property("virtualenv"), flunkOnFailure=False, haltOnFailure=False))
 
     return factory
