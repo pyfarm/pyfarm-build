@@ -1,16 +1,40 @@
-python_versions:
-  core:
-    - 2.6
-    - 2.7
-    - 3.2
-    - 3.3
-    - 3.4
+# This is the public configuration file, to override or create some
+# values privately just create a private.yml file.  Value in that file
+# will be recursively merged with this file.
 
-  master:
-    - 2.7
-    - 3.3
-    - 3.4
 
-  agent:
-    - 2.6
-    - 2.7
+db: "sqlite:///state.sqlite"
+
+
+# Basic, non-private, slave configuration data.  Basic structure
+# of a slave's configuration is:
+# <slavename>:
+#   type: <linux, mac, windows>
+#   py: <list of python versions this host can run>
+#   passwd: <password of the agent to communicate with the master>
+#
+# In addition to the above standard fields, any additional key/value pairs
+# will be pass in as keywords to the build slave class.  AWS hosts for example
+# have a few extra parameters:
+#   http://docs.buildbot.net/0.8.3/reference/buildbot.ec2buildslave.EC2LatentBuildSlave-class.html
+slaves:
+  persistent:
+    deb-7-0:
+      type: linux
+      py: [2.6, 2.7, 3.2, 3.3, 3.4]
+      passwd: foobar
+
+    osx-mav-0:
+      type: mac
+      py: [2.6, 2.7, 3.4]
+      passwd: foobar
+
+  aws:
+    win-2012-0:
+      type: windows
+      py: [2.6, 2.7, 3.2, 3.3, 3.4]
+      passwd: foobar
+
+
+github_changesource:
+  secret: foobar
