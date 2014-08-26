@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import Mapping
+
 import yaml
 from buildbot.buildslave import BuildSlave
 from buildbot.buildslave.ec2 import EC2LatentBuildSlave
@@ -24,14 +26,26 @@ from buildbot.status import html
 from master.changesource import GitHubBuildBot
 from master.builders import get_build_factory
 
-file_cfg = {}
 
-# Load configuration data
-with open("private.yml", "r") as private_yaml_file:
-    file_cfg.update(yaml.load(private_yaml_file))
+def update(d, u):
+    for k, v in u.iteritems():
+        if isinstance(v, Mapping):
+            r = update(d.get(k, {}), v)
+            d[k] = r
+        else:
+            d[k] = u[k]
+    return d
 
+# Load public configuration
 with open("config.yml", "r") as public_yaml_file:
-    file_cfg.update(yaml.load(public_yaml_file))
+    public_config = yaml.load(public_yaml_file)
+
+# Load private configuration
+with open("private.yml", "r") as private_yaml_file:
+    private_config = yaml.load(private_yaml_file)
+
+# Merge the configurations
+file_cfg = update(public_config, private_config)
 
 buildslave_matrix = {
     "linux": [],
