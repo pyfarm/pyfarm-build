@@ -10,7 +10,7 @@ db: "sqlite:///state.sqlite"
 # of a slave's configuration is:
 # <slavename>:
 #   type: <linux, mac, windows>
-#   py: <list of python versions this host can run>
+#   python: <list of python versions this host can run>
 #   passwd: <password of the agent to communicate with the master>
 #
 # In addition to the above standard fields, any additional key/value pairs
@@ -21,18 +21,18 @@ slaves:
   persistent:
     deb-7-0:
       type: linux
-      py: [2.6, 2.7, 3.2, 3.3, 3.4]
+      python: [2.6, 2.7, 3.2, 3.3, 3.4]
       passwd: foobar
 
     osx-mav-0:
       type: mac
-      py: [2.6, 2.7, 3.4]
+      python: [2.6, 2.7, 3.4]
       passwd: foobar
 
   aws:
     win-2012-0:
       type: windows
-      py: [2.6, 2.7, 3.2, 3.3, 3.4]
+      python: [2.6, 2.7, 3.2, 3.3, 3.4]
       passwd: foobar
 
 
