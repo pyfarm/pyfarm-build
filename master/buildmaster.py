@@ -14,15 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+import sys
 from collections import Mapping
 
 import yaml
 from buildbot.buildslave import BuildSlave
 from buildbot.buildslave.ec2 import EC2LatentBuildSlave
+from buildbot.changes.pb import PBChangeSource
 from buildbot.config import BuilderConfig
 from buildbot.schedulers.triggerable import Triggerable
 from buildbot.status.web import authz, auth
 from buildbot.status import html
+from twisted.web.server import Site
+from twisted.internet import reactor
 
 from master.changesource import GitHubBuildBot
 from master.steps import get_build_factory
@@ -58,17 +63,20 @@ config = BuildmasterConfig = {
     "slaves": [],
     "builders": [],
     "schedulers": [],
-    "protocols": {
-        "pb": {"port": 9989}
-    },
     "change_source": [
-        GitHubBuildBot(file_cfg["github_changesource"]["secret"])
-    ]
+        PBChangeSource(
+            user=file_cfg["changesource"]["user"],
+            passwd=file_cfg["changesource"]["passwd"])
+    ],
+    "protocols": {
+        "pb": {"port": file_cfg["protocols"]["pb"]}
+    }
 }
 
 projects = ("core", "agent", "master")
 builders = config["builders"]
 schedulers = config["schedulers"]
+change_source = config["change_source"]
 slaves = config["slaves"]
 slave_data = []
 
@@ -103,6 +111,26 @@ for project in projects:
             project_builders.append(name)
     scheduler = Triggerable(name=project, builderNames=project_builders)
     schedulers.append(scheduler)
+
+# Setup the github hook
+github_bot = GitHubBuildBot()
+github_bot.github = file_cfg["changesource"]["github"]["host"]
+github_bot.master = file_cfg["changesource"]["github"]["master"]
+github_bot.secret = file_cfg["changesource"]["github"]["secret"]
+github_bot.auth = ":".join([
+    file_cfg["changesource"]["user"], file_cfg["changesource"]["passwd"]])
+
+# Get the reactor to listen for the commit hook
+reactor.listenTCP(file_cfg["changesource"]["github"]["port"], Site(github_bot))
+
+# Logging setup (mainly used by the github hook)
+if file_cfg["log_level"]:
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(stream=sys.stdout)],
+        level=logging._levelNames[file_cfg["log_level"].upper()])
+
+
 
 #
 # ####### SCHEDULERS

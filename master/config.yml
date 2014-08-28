@@ -4,6 +4,9 @@
 
 
 db: "sqlite:///state.sqlite"
+log_level: null
+protocols:
+  pb: 9989
 
 
 # Basic, non-private, slave configuration data.  Basic structure
@@ -44,7 +47,13 @@ slaves:
       identifier: public_key
       secret_identifier: private_key
 
+changesource:
+  user: changeme
+  passwd: changeme
 
+  github:
+    port: 9900
+    secret: foobar
+    master: 127.0.0.1:9989
+    host: github.com
 
-github_changesource:
-  secret: foobar
