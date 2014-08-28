@@ -54,3 +54,9 @@ docs/_build/
 
 *.yml
 *.sqlite
+master/agent-*-2_*
+master/agent-*-3_*
+master/core-*-2_*
+master/core-*-3_*
+master/master-*-2_*
+master/master-*-3_*
