@@ -14,22 +14,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 from functools import partial
 
 from buildbot.process.factory import BuildFactory
 from buildbot.steps.source.git import Git
-from buildbot.steps.shell import SetPropertyFromCommand, ShellCommand
+from buildbot.steps.shell import SetPropertyFromCommand
 from buildbot.steps.slave import RemoveDirectory
 from buildbot.process.properties import Property
 
-CREATE_VIRTUALENV_DIR = """
+CREATE_ENVIRONMENT = """
+from __future__ import print_function
+import os
+import json
 import tempfile
-print tempfile.mkdtemp(prefix="virtualenv-")
+import subprocess
+tempdir = tempfile.mkdtemp()
+virtualenv = os.path.join(tempdir, "virtualenv")
+make_virtualenv = ["virtualenv", virtualenv, "--quiet"]
+
+# Windows requires the site-packages directory so we can access things
+# like pywin32
+if os.name == "nt":
+    virtualenv.append("--system-site-packages")
+    bin_dir = "Scripts"
+    activate_script = "activate.bat"
+else:
+    bin_dir = "bin"
+    activate_script = "activate"
+
+# Create the virtualenv
+subprocess.check_call(make_virtualenv)
+
+activate = os.path.join(virtualenv, bin_dir, activate_script)
+print(json.dumps(
+    {"virtualenv": virtualenv, "activate": activate, "tempdir": tempdir}))
 """.strip()
 
 REPO_URL = "git://github.com/pyfarm/pyfarm-{project}.git"
 
 Clone = partial(Git, clobberOnFailure=True, progress=True)
+
+
+class CreateEnvironment(SetPropertyFromCommand):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("extract_fn", self._extract_fn)
+        SetPropertyFromCommand.__init__(self, *args, **kwargs)
+
+    def _extract_fn(self, _, stdout, stderr):
+        data = json.loads(stdout)
+        for key, value in data.items():
+            if isinstance(value, unicode):
+                data[key] = str(value)
+        return data
 
 
 def clone_steps(project):
@@ -44,21 +81,6 @@ def clone_steps(project):
     return projects, steps
 
 
-def create_virtualenv(platform, pyversion):
-    if platform == "windows":
-        venv = "C:\\Python%s\\Scripts\\virtualenv-%s" % (
-            pyversion.replace(".", ""), pyversion)
-        command = [venv, "--system-site-packages", Property("virtualenv")]
-
-    else:
-        venv = "virtualenv-%s" % pyversion
-        command = [venv, Property("virtualenv")]
-
-    return ShellCommand(
-        name="create virtualenv",
-        command=command)
-
-
 def get_build_factory(project, platform, pyversion):
     factory = BuildFactory()
 
@@ -68,16 +90,13 @@ def get_build_factory(project, platform, pyversion):
 
     # Create the virtual environment
     factory.addStep(
-        SetPropertyFromCommand(
-            name="create virtualenv directory",
-            property="virtualenv",
-            command=["python", "-c", CREATE_VIRTUALENV_DIR]))
-    factory.addStep(
-        create_virtualenv(platform, pyversion))
+        CreateEnvironment(
+            name="create environment",
+            command=["python%s" % pyversion, "-c", CREATE_ENVIRONMENT]))
 
     # Destroy the virtualenv
     factory.addStep(
         RemoveDirectory(
-            Property("virtualenv"), flunkOnFailure=False, haltOnFailure=False))
+            Property("tempdir"), flunkOnFailure=False, haltOnFailure=False))
 
     return factory
