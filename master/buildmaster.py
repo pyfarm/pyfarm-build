@@ -24,8 +24,9 @@ from buildbot.buildslave.ec2 import EC2LatentBuildSlave
 from buildbot.changes.pb import PBChangeSource
 from buildbot.config import BuilderConfig
 from buildbot.schedulers.triggerable import Triggerable
-from buildbot.status.web import authz, auth
-from buildbot.status import html
+from buildbot.status.html import WebStatus
+from buildbot.status.web.auth import BasicAuth
+from buildbot.status.web.authz import Authz
 from twisted.web.server import Site
 from twisted.internet import reactor
 
@@ -75,6 +76,7 @@ config = BuildmasterConfig = {
 
 projects = ("core", "agent", "master")
 builders = config["builders"]
+status = config["status"]
 schedulers = config["schedulers"]
 change_source = config["change_source"]
 slaves = config["slaves"]
@@ -131,44 +133,16 @@ if file_cfg["log_level"]:
         level=logging._levelNames[file_cfg["log_level"].upper()])
 
 
+# Web interface auth
+authz = Authz(
+    auth=BasicAuth(file_cfg["http_users"]),
+    gracefulShutdown="auth",
+    forceBuild="auth",
+    forceAllBuilds="auth",
+    pingBuilder="auth",
+    stopBuild="auth",
+    stopAllBuilds="auth",
+    cancelPendingBuild="auth")
 
-#
-# ####### SCHEDULERS
-#
-# # Configure the Schedulers, which decide how to react to incoming changes.  In this
-# # case, just kick off a 'runtests' build
-#
-# from buildbot.schedulers.basic import SingleBranchScheduler
-# from buildbot.schedulers.forcesched import ForceScheduler
-# from buildbot.changes import filter
-# config['schedulers'] = []
-# config['schedulers'].append(SingleBranchScheduler(
-#                             name="all",
-#                             change_filter=filter.ChangeFilter(branch='master'),
-#                             treeStableTimer=None,
-#                             builderNames=["runtests"]))
-# config['schedulers'].append(ForceScheduler(
-#                             name="force",
-#                             builderNames=["runtests"]))
-#
-# ####### STATUS TARGETS
-#
-# # 'status' is a list of Status Targets. The results of each build will be
-# # pushed to these targets. buildbot/status/*.py has a variety to choose from,
-# # including web pages, email senders, and IRC bots.
-#
-# config['status'] = []
-#
-# authz_cfg=authz.Authz(
-#     # change any of these to True to enable; see the manual for more
-#     # options
-#     auth=auth.BasicAuth([("pyflakes","pyflakes")]),
-#     gracefulShutdown = False,
-#     forceBuild = 'auth', # use this to test your slave once it is set up
-#     forceAllBuilds = False,
-#     pingBuilder = False,
-#     stopBuild = False,
-#     stopAllBuilds = False,
-#     cancelPendingBuild = False,
-# )
-# config['status'].append(html.WebStatus(http_port=8010, authz=authz_cfg))
+web_status = WebStatus(http_port=file_cfg["protocols"]["web"], authz=authz)
+status.append(web_status)
