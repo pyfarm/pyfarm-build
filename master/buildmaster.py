@@ -21,6 +21,7 @@ from collections import Mapping
 import yaml
 from buildbot.buildslave import BuildSlave
 from buildbot.buildslave.ec2 import EC2LatentBuildSlave
+from buildbot.schedulers.forcesched import ForceScheduler
 from buildbot.changes.pb import PBChangeSource
 from buildbot.config import BuilderConfig
 from buildbot.schedulers.triggerable import Triggerable
@@ -113,6 +114,8 @@ for project in projects:
             project_builders.append(name)
     scheduler = Triggerable(name=project, builderNames=project_builders)
     schedulers.append(scheduler)
+    schedulers.append(
+        ForceScheduler("%s-force" % project, builderNames=project_builders))
 
 # Setup the github hook
 github_bot = GitHubBuildBot()
