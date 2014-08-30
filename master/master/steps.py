@@ -93,7 +93,9 @@ def clone_steps(project):
 
     if project != "core":
         projects.append(project)
-        steps.append(Clone(REPO_URL.format(project=project), workdir=project))
+        steps.append(
+            Clone(REPO_URL.format(project=project), workdir=project,
+                  name="clone %s" % project))
 
     return projects, steps
 
@@ -126,6 +128,15 @@ def get_build_factory(project, platform, pyversion):
                 workdir=project,
                 command=[Property("pip"), "install", "-e", ".", "--egg"]))
 
+    # Install test packages
+    test_requirements = ["nose"]
+    if not pyversion.startswith("3"):
+        test_requirements.append("mock")
+
+    factory.addStep(
+        ShellCommand(
+            name="install test packages",
+            command=[Property("pip"), "install"] + test_requirements))
 
     # Destroy the virtualenv
     factory.addStep(
