@@ -105,6 +105,12 @@ for project in projects:
     project_builders = []
     for slave, platform, python_versions in slave_data:
         for python_version in python_versions:
+            if project == "master" and python_version == "2.6":
+                continue
+
+            if project == "agent" and python_version.startswith("3"):
+                continue
+
             name = "{project}-{platform}-{python_version}".format(**locals())
             builder = BuilderConfig(
                 env={"PYTHON_VERSION": python_version},
