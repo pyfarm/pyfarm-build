@@ -107,6 +107,7 @@ for project in projects:
         for python_version in python_versions:
             name = "{project}-{platform}-{python_version}".format(**locals())
             builder = BuilderConfig(
+                env={"PYTHON_VERSION": python_version},
                 name=name, slavename=slave,
                 factory=get_build_factory(project, platform, python_version))
             builders.append(builder)
