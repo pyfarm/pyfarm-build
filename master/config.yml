@@ -48,7 +48,15 @@ slaves:
       identifier: public_key
       secret_identifier: private_key
 
-http_users: []
+authz_users: []
+authz_perms:
+  gracefulShutdown: True
+  forceBuild: True
+  forceAllBuilds: True
+  pingBuilder: True
+  stopBuild: True
+  stopAllBuilds: True
+  cancelPendingBuild: True
 
 changesource:
   user: changeme

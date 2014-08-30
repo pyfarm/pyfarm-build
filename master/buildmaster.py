@@ -139,14 +139,8 @@ if file_cfg["log_level"]:
 
 # Web interface auth
 authz = Authz(
-    auth=BasicAuth(file_cfg["http_users"]),
-    gracefulShutdown="auth",
-    forceBuild="auth",
-    forceAllBuilds="auth",
-    pingBuilder="auth",
-    stopBuild="auth",
-    stopAllBuilds="auth",
-    cancelPendingBuild="auth")
+    auth=BasicAuth(file_cfg["authz_users"]),
+    **file_cfg["authz_perms"])
 
 web_status = WebStatus(http_port=file_cfg["protocols"]["web"], authz=authz)
 status.append(web_status)
