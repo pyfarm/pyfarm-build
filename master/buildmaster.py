@@ -55,6 +55,26 @@ with open("private.yml", "r") as private_yaml_file:
 # Merge the configurations
 file_cfg = update(public_config, private_config)
 
+
+def get_hosts(config_data):
+    """Pulls slaves from the provided configuration data"""
+    slaves = config_data["slaves"]
+
+    for host_group in ("persistent", "aws"):
+        for name, data in slaves[host_group].items():
+            if not data.pop("enabled", True):
+                print >> sys.stderr, "Slave %s is not enabled" % name
+                continue
+
+            host_type = data.pop("type")
+            projects = data.pop("projects")
+            for project, python_versions in projects.items():
+                for python_version in python_versions:
+                    yield (
+                        host_group, host_type, name, project,
+                        str(python_version), data.copy())
+
+
 # Main configuration read in the .tac file
 config = BuildmasterConfig = {
     "title": "PyFarm",
@@ -82,47 +102,43 @@ schedulers = config["schedulers"]
 change_source = config["change_source"]
 slaves = config["slaves"]
 slave_data = []
+builder_slaves = {}
 
-# Add persistent build slave(s)
-for name, cfg in file_cfg["slaves"]["persistent"].items():
-    if not cfg.pop("enabled"):
-        continue
+# Create slaves
+for type_, platform, name, slave_project, python_version, slavecfg in \
+        get_hosts(file_cfg):
+    if type_ == "persistent":
+        slave = BuildSlave(name, slavecfg.pop("passwd"), **slavecfg)
+    elif type_ == "aws":
+        slave = EC2LatentBuildSlave(
+            name, slavecfg.pop("passwd"), slavecfg.pop("instance_type"),
+            **slavecfg)
+    else:
+        raise NotImplementedError("Cannot handle host type %s" % type_)
 
-    slave_data.append((name, cfg.pop("type"), map(str, cfg.pop("python"))))
-    slaves.append(BuildSlave(name, cfg.pop("passwd"), **cfg))
+    builder_name = "{slave_project}-{platform}-{python_version}".format(
+        slave_project=slave_project, platform=platform,
+        python_version=python_version)
+    builder_slaves.setdefault(builder_name, [])
+    builder_slaves[builder_name].append(name)
+    slaves.append(slave)
 
-# Add aws build slaves
-for name, cfg in file_cfg["slaves"]["aws"].items():
-    if not cfg.pop("enabled"):
-        continue
+for name, slaves in builder_slaves.items():
+    project, platform, python_version = name.split("-")
 
-    slave_data.append((name, cfg.pop("type"), map(str, cfg.pop("python"))))
-    slaves.append(EC2LatentBuildSlave(
-        name, cfg.pop("passwd"), cfg.pop("instance_type"), **cfg))
+    # Create builder
+    builder = BuilderConfig(
+        env={"PYTHON_VERSION": python_version},
+        name=name, slavenames=slaves,
+        factory=get_build_factory(project, platform, python_version))
+    builders.append(builder)
 
-builder_names = []
-for project in projects:
-    project_builders = []
-    for slave, platform, python_versions in slave_data:
-        for python_version in python_versions:
-            if project == "master" and python_version == "2.6":
-                continue
-
-            if project == "agent" and python_version.startswith("3"):
-                continue
-
-            name = "{project}-{platform}-{python_version}".format(**locals())
-            builder = BuilderConfig(
-                env={"PYTHON_VERSION": python_version},
-                name=name, slavename=slave,
-                factory=get_build_factory(project, platform, python_version))
-            builders.append(builder)
-            builder_names.append(name)
-            project_builders.append(name)
-    scheduler = Triggerable(name=project, builderNames=project_builders)
-    schedulers.append(scheduler)
+    # Create scheduler for this builder
     schedulers.append(
-        ForceScheduler("%s-force" % project, builderNames=project_builders))
+        Triggerable(name=name, builderNames=[name]))
+    schedulers.append(
+        ForceScheduler("%s-force" % name, builderNames=[name]))
+
 
 # Setup the github hook
 github_bot = GitHubBuildBot()
@@ -141,7 +157,6 @@ if file_cfg["log_level"]:
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=[logging.StreamHandler(stream=sys.stdout)],
         level=logging._levelNames[file_cfg["log_level"].upper()])
-
 
 # Web interface auth
 authz = Authz(

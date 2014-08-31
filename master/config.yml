@@ -26,20 +26,29 @@ slaves:
     deb-7-0:
       enabled: True
       type: linux
-      python: [2.6, 2.7, 3.2, 3.3, 3.4]
+      projects:
+        core: ["2.6", "2.7", "3.2", "3.3", "3.4"]
+        agent: ["2.6", "2.7"]
+        master: ["2.7", "3.2", "3.4"]
+
       passwd: foobar
 
     osx-mav-0:
       enabled: True
       type: mac
-      python: [2.6, 2.7, 3.4]
+      projects:
+        core: ["2.6", "2.7", "3.2", "3.3", "3.4"]
+        agent: ["2.6", "2.7"]
+        master: ["2.7", "3.2", "3.4"]
       passwd: foobar
 
   aws:
     win-2012-0:
       enabled: False
       type: windows
-      python: [2.6, 2.7, 3.2, 3.3, 3.4]
+      projects:
+        core: ["2.6", "2.7", "3.2", "3.3", "3.4"]
+        agent: ["2.6", "2.7"]
       passwd: foobar
 
       # Required
