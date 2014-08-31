@@ -44,6 +44,7 @@ if os.name == "nt":
     python_bin_name = "python.exe"
     pip_bin_name = "pip.exe"
     bin_dir = "Scripts"
+    nose_bin_name = "nosetests.exe"
 
 else:
     mkvirtualenv = [
@@ -52,16 +53,16 @@ else:
     python_bin_name = "python"
     pip_bin_name = "pip"
     bin_dir = "bin"
+    nose_bin_name = "nosetests"
 
 # Create the virtualenv
 subprocess.check_call(mkvirtualenv)
 
-python = os.path.join(virtualenv_root, bin_dir, python_bin_name)
-pip = os.path.join(virtualenv_root, bin_dir, pip_bin_name)
-
 print(json.dumps(
     {"virtualenv": virtualenv_root, "tempdir": tempdir,
-    "python": python, "pip": pip}))
+    "python": os.path.join(virtualenv_root, bin_dir, python_bin_name),
+    "pip": os.path.join(virtualenv_root, bin_dir, pip_bin_name),
+    "nosetests": os.path.join(virtualenv_root, bin_dir, nose_bin_name)}))
 """.strip()
 
 CREATE_REQUIREMENTS = """
@@ -130,13 +131,22 @@ def get_build_factory(project, platform, pyversion):
 
     # Install test packages
     test_requirements = ["nose"]
-    if not pyversion.startswith("3"):
+    if not pyversion.startswith("3."):
         test_requirements.append("mock")
+
+    if pyversion == "2.6":
+        test_requirements.append("unittest2")
 
     factory.addStep(
         ShellCommand(
             name="install test packages",
             command=[Property("pip"), "install"] + test_requirements))
+
+    factory.addStep(
+        ShellCommand(
+            name="run tests",
+            workdir=project,
+            command=[Property("nosetests"), "tests", "-s", "--verbose"]))
 
     # Destroy the virtualenv
     factory.addStep(
