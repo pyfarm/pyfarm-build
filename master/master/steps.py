@@ -138,22 +138,22 @@ def get_build_factory(project, platform, pyversion, dbtype):
     if pyversion == "2.6":
         requirements.append("unittest2")
 
+    db_name = "pyfarm_unittest_%s_%s" % (platform, pyversion.replace(".", ""))
+    print "testdb: %s" % db_name
+
     if dbtype == "mysql":
         requirements.append("mysql-connector-python")
-        db_name = "pyfarm-mysql-%s-%s" % (platform, pyversion.replace(".", ""))
         env.update(
             DATABASE_NAME=db_name,
             PYFARM_DATABASE_URI=
-            "mysql+mysqlconnector://buildbot:@127.0.0.1/%s" % db_name)
+            "mysql+mysqlconnector://buildbot:42e203517fe6eafda2bfa96580c4973f9cc265b50afebef2@127.0.0.1/%s" % db_name)
 
     if dbtype == "postgres":
         requirements.append("psycopg2")
-        db_name = "pyfarm-postgres-%s-%s" % (
-            platform, pyversion.replace(".", ""))
         env.update(
             DATABASE_NAME=db_name,
             PYFARM_DATABASE_URI=
-            "postgresql+psycopg2://buildbot:@127.0.0.1/%s" % db_name)
+            "postgresql+psycopg2://buildbot:42e203517fe6eafda2bfa96580c4973f9cc265b50afebef2@127.0.0.1/%s" % db_name)
 
     factory.addStep(
         ShellCommand(
