@@ -22,3 +22,7 @@ for database in config["databases"]:
 for database in config["databases"]:
     print "GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%%' IDENTIFIED BY '%s';" % (
         database, config["username"], config["password"])
+
+for database in config["databases"]:
+    print "GRANT ALL PRIVILEGES ON %s.* TO '%s'@'localhost' IDENTIFIED BY '%s';" % (
+        database, config["username"], config["password"])
