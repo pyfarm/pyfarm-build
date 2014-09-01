@@ -1,0 +1,18 @@
+username: buildbot
+password: 42e203517fe6eafda2bfa96580c4973f9cc265b50afebef2
+databases:
+  - pyfarm_unittest_win_26
+  - pyfarm_unittest_win_27
+  - pyfarm_unittest_win_32
+  - pyfarm_unittest_win_34
+  - pyfarm_unittest_win_33
+  - pyfarm_unittest_mac_26
+  - pyfarm_unittest_mac_27
+  - pyfarm_unittest_mac_32
+  - pyfarm_unittest_mac_34
+  - pyfarm_unittest_mac_33
+  - pyfarm_unittest_linux_26
+  - pyfarm_unittest_linux_27
+  - pyfarm_unittest_linux_32
+  - pyfarm_unittest_linux_34
+  - pyfarm_unittest_linux_33
