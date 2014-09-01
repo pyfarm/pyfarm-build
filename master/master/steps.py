@@ -142,11 +142,12 @@ def get_build_factory(project, platform, pyversion):
             name="install test packages",
             command=[Property("pip"), "install"] + test_requirements))
 
-    factory.addStep(
-        ShellCommand(
-            name="run tests",
-            workdir=project,
-            command=[Property("nosetests"), "tests", "-s", "--verbose"]))
+    if project == "core":
+        factory.addStep(
+            ShellCommand(
+                name="run tests",
+                workdir=project,
+                command=[Property("nosetests"), "tests", "-s", "--verbose"]))
 
     # Destroy the virtualenv
     factory.addStep(
