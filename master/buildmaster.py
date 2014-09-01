@@ -116,21 +116,35 @@ for type_, platform, name, slave_project, python_version, slavecfg in \
     else:
         raise NotImplementedError("Cannot handle host type %s" % type_)
 
-    builder_name = "{slave_project}-{platform}-{python_version}".format(
-        slave_project=slave_project, platform=platform,
-        python_version=python_version)
-    builder_slaves.setdefault(builder_name, [])
-    builder_slaves[builder_name].append(name)
-    slaves.append(slave)
+    if slave_project == "master":
+        for dbtype in ("postgres", "mysql"):
+            builder_name = "{slave_project}-{dbtype}-{platform}-" \
+                           "{python_version}".format(
+                slave_project=slave_project, dbtype=dbtype, platform=platform,
+                python_version=python_version)
+            builder_slaves.setdefault(builder_name, [])
+            builder_slaves[builder_name].append(name)
+            slaves.append(slave)
+    else:
+        builder_name = "{slave_project}-{platform}-{python_version}".format(
+            slave_project=slave_project, platform=platform,
+            python_version=python_version)
+        builder_slaves.setdefault(builder_name, [])
+        builder_slaves[builder_name].append(name)
+        slaves.append(slave)
 
 for name, slaves in builder_slaves.items():
-    project, platform, python_version = name.split("-")
+    try:
+        project, platform, python_version = name.split("-")
+        dbtype = None
+    except ValueError:
+        project, dbtype, platform, python_version = name.split("-")
 
     # Create builder
     builder = BuilderConfig(
         env={"PYTHON_VERSION": python_version},
         name=name, slavenames=slaves,
-        factory=get_build_factory(project, platform, python_version))
+        factory=get_build_factory(project, platform, python_version, dbtype))
     builders.append(builder)
 
     # Create scheduler for this builder
