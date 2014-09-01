@@ -101,7 +101,7 @@ def clone_steps(project):
     return projects, steps
 
 
-def get_build_factory(project, platform, pyversion):
+def get_build_factory(project, platform, pyversion, dbtype):
     factory = BuildFactory()
 
     # Git
@@ -130,23 +130,45 @@ def get_build_factory(project, platform, pyversion):
                 command=[Property("pip"), "install", "-e", ".", "--egg"]))
 
     # Install test packages
-    test_requirements = ["nose"]
+    requirements = ["nose"]
+    env = {}
     if not pyversion.startswith("3."):
-        test_requirements.append("mock")
+        requirements.append("mock")
 
     if pyversion == "2.6":
-        test_requirements.append("unittest2")
+        requirements.append("unittest2")
+
+    if dbtype == "mysql":
+        requirements.append("mysql-connector-python")
+        db_name = "pyfarm-mysql-%s-%s" % (platform, pyversion.replace(".", ""))
+        env.update(
+            DATABASE_NAME=db_name,
+            PYFARM_DATABASE_URI=
+            "mysql+mysqlconnector://buildbot:@127.0.0.1/%s" % db_name)
+
+    if dbtype == "postgres":
+        requirements.append("psycopg2")
+        db_name = "pyfarm-postgres-%s-%s" % (
+            platform, pyversion.replace(".", ""))
+        env.update(
+            DATABASE_NAME=db_name,
+            PYFARM_DATABASE_URI=
+            "postgresql+psycopg2://buildbot:@127.0.0.1/%s" % db_name)
 
     factory.addStep(
         ShellCommand(
-            name="install test packages",
-            command=[Property("pip"), "install"] + test_requirements))
+            name="install additional packages",
+            command=[
+                Property("pip"), "install", "--allow-external",
+                "mysql-connector-python"] + requirements))
 
-    if project == "core":
+    if project in ("core", "master"):
+        # TODO: configure db
         factory.addStep(
             ShellCommand(
                 name="run tests",
                 workdir=project,
+                env=env,
                 command=[Property("nosetests"), "tests", "-s", "--verbose"]))
 
     # Destroy the virtualenv
