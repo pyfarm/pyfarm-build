@@ -23,6 +23,7 @@ from buildbot.buildslave import BuildSlave
 from buildbot.buildslave.ec2 import EC2LatentBuildSlave
 from buildbot.schedulers.forcesched import ForceScheduler
 from buildbot.schedulers.basic import SingleBranchScheduler
+from buildbot.changes.filter import ChangeFilter
 from buildbot.changes.pb import PBChangeSource
 from buildbot.config import BuilderConfig
 from buildbot.schedulers.triggerable import Triggerable
@@ -140,13 +141,11 @@ for type_, platform, name, slave_project, python_version, slavecfg in \
 
 for scheduler_group, scheduler_builders in scheduler_groups.items():
     scheduler = SingleBranchScheduler(
-        scheduler_group, builderNames=scheduler_builders,
-        codebases={
-            scheduler_group: {
-                "repository":
-                    "https://github.com/pyfarm/pyfarm-%s" % scheduler_group
-            }
-        }
+        scheduler_group,
+        builderNames=list(scheduler_builders),
+        change_filter=ChangeFilter(
+            repository_fn=lambda item: item.endswith(scheduler_group),
+            branch_fn=lambda _: True)
     )
     schedulers.append(scheduler)
 
