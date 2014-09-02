@@ -71,7 +71,7 @@ CREATE_REQUIREMENTS = """
 
 REPO_URL = "https://github.com/pyfarm/pyfarm-{project}"
 
-Clone = partial(Git, clobberOnFailure=True, progress=True)
+Clone = partial(Git, clobberOnFailure=True, progress=True, mode='full')
 
 
 class CreateEnvironment(SetPropertyFromCommand):
