@@ -93,10 +93,14 @@ def clone_steps(project):
         steps = [
             Clone(REPO_URL.format(project="core"), workdir="core")]
 
-    if project != "core":
+    else:
         steps = [
-            Clone(REPO_URL.format(project="core"), workdir="core",
-                  branch="master")]
+            RemoveDirectory("core"),
+            ShellCommand(
+                workdir="core",
+                command=[
+                    "git", "clone", "https://github.com/pyfarm/pyfarm-core",
+                    "core"])]
 
         projects.append(project)
         steps.append(
