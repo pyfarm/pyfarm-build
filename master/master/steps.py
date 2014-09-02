@@ -69,7 +69,7 @@ CREATE_REQUIREMENTS = """
 
 """.strip()
 
-REPO_URL = "git://github.com/pyfarm/pyfarm-{project}.git"
+REPO_URL = "https://github.com/pyfarm/pyfarm-{project}"
 
 Clone = partial(Git, clobberOnFailure=True, progress=True)
 
