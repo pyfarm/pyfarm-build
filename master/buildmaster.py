@@ -144,8 +144,8 @@ for scheduler_group, scheduler_builders in scheduler_groups.items():
         scheduler_group,
         builderNames=list(scheduler_builders),
         change_filter=ChangeFilter(
-            repository_fn=lambda item: item.endswith(scheduler_group),
-            branch_fn=lambda _: True)
+            repository_fn=lambda item: item.endswith(scheduler_group)),
+            #branch_fn=lambda _: True)
     )
     schedulers.append(scheduler)
 
