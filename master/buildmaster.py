@@ -22,6 +22,7 @@ import yaml
 from buildbot.buildslave import BuildSlave
 from buildbot.buildslave.ec2 import EC2LatentBuildSlave
 from buildbot.schedulers.forcesched import ForceScheduler
+from buildbot.schedulers.basic import SingleBranchScheduler
 from buildbot.changes.pb import PBChangeSource
 from buildbot.config import BuilderConfig
 from buildbot.schedulers.triggerable import Triggerable
@@ -103,6 +104,7 @@ change_source = config["change_source"]
 slaves = config["slaves"]
 slave_data = []
 builder_slaves = {}
+scheduler_groups = {}
 
 # Create slaves
 for type_, platform, name, slave_project, python_version, slavecfg in \
@@ -132,6 +134,21 @@ for type_, platform, name, slave_project, python_version, slavecfg in \
         builder_slaves.setdefault(builder_name, [])
         builder_slaves[builder_name].append(name)
         slaves.append(slave)
+
+    scheduler_group = scheduler_groups.setdefault(slave_project, set())
+    scheduler_group.add(builder_name)
+
+for scheduler_group, builders in scheduler_groups.items():
+    scheduler = SingleBranchScheduler(
+        scheduler_group, builderNames=builders,
+        codebases={
+            scheduler_group: {
+                "repository":
+                    "https://github.com/pyfarm/pyfarm-%s" % scheduler_group
+            }
+        }
+    )
+    schedulers.append(scheduler)
 
 for name, slaves in builder_slaves.items():
     try:
