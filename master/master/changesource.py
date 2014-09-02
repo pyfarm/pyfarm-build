@@ -60,9 +60,11 @@ class GitHubBuildBot(resource.Resource):
                 the http request object
         """
         event_type = request.getHeader("X-GitHub-Event")
+        push_event = event_type == "push"
+        ping_event = event_type == "ping"
 
         # Reject non-push events
-        if event_type != "push":
+        if not ping_event and not push_event:
             logging.info(
                 "Rejecting request.  Expected a push even got %r instead.",
                 event_type)
@@ -106,6 +108,11 @@ class GitHubBuildBot(resource.Resource):
                     logging.error("Rejecting request.  Hash mismatch.")
                     request.setResponseCode(BAD_REQUEST)
                     return json.dumps({"error": "Bad Request."})
+
+        # Don't do anything more more if this is a ping event.
+        if ping_event:
+            request.setResponseCode(OK)
+            return json.dumps({"result": "Finished."})
 
         try:
             payload = json.loads(content)
