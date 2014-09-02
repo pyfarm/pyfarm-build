@@ -89,10 +89,15 @@ class CreateEnvironment(SetPropertyFromCommand):
 
 def clone_steps(project):
     projects = ["core"]
-    steps = [
-        Clone(REPO_URL.format(project="core"), workdir="core")]
+    if project == "core":
+        steps = [
+            Clone(REPO_URL.format(project="core"), workdir="core")]
 
     if project != "core":
+        steps = [
+            Clone(REPO_URL.format(project="core"), workdir="core",
+                  branch="master")]
+
         projects.append(project)
         steps.append(
             Clone(REPO_URL.format(project=project), workdir=project,
