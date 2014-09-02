@@ -138,9 +138,9 @@ for type_, platform, name, slave_project, python_version, slavecfg in \
     scheduler_group = scheduler_groups.setdefault(slave_project, set())
     scheduler_group.add(builder_name)
 
-for scheduler_group, builders in scheduler_groups.items():
+for scheduler_group, scheduler_builders in scheduler_groups.items():
     scheduler = SingleBranchScheduler(
-        scheduler_group, builderNames=builders,
+        scheduler_group, builderNames=scheduler_builders,
         codebases={
             scheduler_group: {
                 "repository":
