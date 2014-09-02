@@ -87,28 +87,6 @@ class CreateEnvironment(SetPropertyFromCommand):
         return data
 
 
-def clone_steps(project):
-    projects = ["core"]
-    if project == "core":
-        steps = [
-            Clone(REPO_URL.format(project="core"), workdir="core")]
-
-    else:
-        steps = [
-            RemoveDirectory("core"),
-            ShellCommand(
-                command=[
-                    "git", "clone", "https://github.com/pyfarm/pyfarm-core",
-                    "core"])]
-
-        projects.append(project)
-        steps.append(
-            Clone(REPO_URL.format(project=project), workdir=project,
-                  name="clone %s" % project))
-
-    return projects, steps
-
-
 def get_build_factory(project, platform, pyversion, dbtype):
     factory = BuildFactory()
 
@@ -123,8 +101,9 @@ def get_build_factory(project, platform, pyversion, dbtype):
         pip_download_cache = "/Users/buildbot/pip_cache"
 
     # Git
-    project_dirs, git_steps = clone_steps(project)
-    factory.addSteps(git_steps)
+    factory.addStep(
+        Clone(REPO_URL.format(project=project), workdir=project,
+        name="clone %s" % project))
 
     # Create the virtual environment
     factory.addStep(
@@ -132,22 +111,13 @@ def get_build_factory(project, platform, pyversion, dbtype):
             name="create environment",
             command=["python%s" % pyversion, "-c", CREATE_ENVIRONMENT]))
 
-    # Install 'core'
+    # Install this package
     factory.addStep(
         ShellCommand(
-            name="install pyfarm.core",
-            workdir="core",
+            name="install pyfarm.%s" % project,
+            workdir=project,
             env={"PIP_DOWNLOAD_CACHE": pip_download_cache},
             command=[Property("pip"), "install", "-e", ".", "--egg"]))
-
-    # Install this package
-    if project != "core":
-        factory.addStep(
-            ShellCommand(
-                name="install pyfarm.%s" % project,
-                workdir=project,
-                env={"PIP_DOWNLOAD_CACHE": pip_download_cache},
-                command=[Property("pip"), "install", "-e", ".", "--egg"]))
 
     # Install test packages
     requirements = ["nose"]
