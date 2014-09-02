@@ -97,9 +97,9 @@ def clone_steps(project):
         steps = [
             RemoveDirectory("core"),
             ShellCommand(
-                workdir="core",
                 command=[
-                    "git", "clone", "https://github.com/pyfarm/pyfarm-core"])]
+                    "git", "clone", "https://github.com/pyfarm/pyfarm-core",
+                    "core"])]
 
         projects.append(project)
         steps.append(
