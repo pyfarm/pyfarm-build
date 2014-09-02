@@ -128,6 +128,8 @@ for type_, platform, name, slave_project, python_version, slavecfg in \
             builder_slaves.setdefault(builder_name, [])
             builder_slaves[builder_name].append(name)
             slaves.append(slave)
+            scheduler_group = scheduler_groups.setdefault(slave_project, set())
+            scheduler_group.add(builder_name)
     else:
         builder_name = "{slave_project}-{platform}-{python_version}".format(
             slave_project=slave_project, platform=platform,
@@ -136,8 +138,8 @@ for type_, platform, name, slave_project, python_version, slavecfg in \
         builder_slaves[builder_name].append(name)
         slaves.append(slave)
 
-    scheduler_group = scheduler_groups.setdefault(slave_project, set())
-    scheduler_group.add(builder_name)
+        scheduler_group = scheduler_groups.setdefault(slave_project, set())
+        scheduler_group.add(builder_name)
 
 
 from functools import partial
@@ -147,7 +149,7 @@ def filter_change(change, group=None):
     assert group is not None
     return group in change.repository
 
-
+print scheduler_groups
 for scheduler_group, scheduler_builders in scheduler_groups.items():
     scheduler = SingleBranchScheduler(
         scheduler_group,
