@@ -104,6 +104,16 @@ def clone_steps(project):
 def get_build_factory(project, platform, pyversion, dbtype):
     factory = BuildFactory()
 
+    pip_download_cache = "pip_cache"
+    if platform == "linux":
+        pip_download_cache = "/home/buildbot/pip_cache"
+
+    if platform == "win":
+        pip_download_cache = "C:\\Users\\buildbot\\pip_cache"
+
+    if platform == "mac":
+        pip_download_cache = "/Users/buildbot/pip_cache"
+
     # Git
     project_dirs, git_steps = clone_steps(project)
     factory.addSteps(git_steps)
@@ -119,6 +129,7 @@ def get_build_factory(project, platform, pyversion, dbtype):
         ShellCommand(
             name="install pyfarm.core",
             workdir="core",
+            env={"PIP_DOWNLOAD_CACHE": pip_download_cache},
             command=[Property("pip"), "install", "-e", ".", "--egg"]))
 
     # Install this package
@@ -127,6 +138,7 @@ def get_build_factory(project, platform, pyversion, dbtype):
             ShellCommand(
                 name="install pyfarm.%s" % project,
                 workdir=project,
+                env={"PIP_DOWNLOAD_CACHE": pip_download_cache},
                 command=[Property("pip"), "install", "-e", ".", "--egg"]))
 
     # Install test packages
@@ -158,6 +170,7 @@ def get_build_factory(project, platform, pyversion, dbtype):
     factory.addStep(
         ShellCommand(
             name="install additional packages",
+            env={"PIP_DOWNLOAD_CACHE": pip_download_cache},
             command=[
                 Property("pip"), "install", "--allow-external",
                 "mysql-connector-python"] + requirements))
