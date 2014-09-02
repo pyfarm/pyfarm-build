@@ -139,13 +139,21 @@ for type_, platform, name, slave_project, python_version, slavecfg in \
     scheduler_group = scheduler_groups.setdefault(slave_project, set())
     scheduler_group.add(builder_name)
 
+
+from functools import partial
+
+
+def filter_change(change, group=None):
+    assert group is not None
+    return group in change.repository
+
+
 for scheduler_group, scheduler_builders in scheduler_groups.items():
     scheduler = SingleBranchScheduler(
         scheduler_group,
         builderNames=list(scheduler_builders),
         change_filter=ChangeFilter(
-            repository_fn=lambda item: item.endswith(scheduler_group)),
-            #branch_fn=lambda _: True)
+            filter_fn=partial(filter_change, group=scheduler_group))
     )
     schedulers.append(scheduler)
 
