@@ -63,6 +63,9 @@ def get_hosts(config_data):
     slaves = config_data["slaves"]
 
     for host_group in ("persistent", "aws"):
+        if host_group not in slaves:
+          continue
+
         for name, data in slaves[host_group].items():
             if not data.pop("enabled", True):
                 print >> sys.stderr, "Slave %s is not enabled" % name
