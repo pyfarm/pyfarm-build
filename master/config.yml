@@ -23,7 +23,7 @@ protocols:
 #   http://docs.buildbot.net/0.8.3/reference/buildbot.ec2buildslave.EC2LatentBuildSlave-class.html
 slaves:
   persistent:
-    deb-7-0:
+    linux-deb:
       enabled: True
       type: linux
       projects:
@@ -33,29 +33,22 @@ slaves:
 
       passwd: foobar
 
-    osx-mav-0:
+    mac-mav:
       enabled: True
       type: mac
       projects:
-        core: ["2.6", "2.7", "3.4"]
+        core: ["2.6", "2.7", "3.2", "3.3", "3.4"]
         agent: ["2.6", "2.7"]
         master: ["2.7", "3.4"]
       passwd: foobar
 
-  aws:
-    win-2012-0:
+    win-7pro:
       enabled: False
       type: windows
       projects:
         core: ["2.6", "2.7", "3.2", "3.3", "3.4"]
         agent: ["2.6", "2.7"]
       passwd: foobar
-
-      # Required
-      instance_type: t2.micro
-      ami: ami
-      identifier: public_key
-      secret_identifier: private_key
 
 authz_users: []
 authz_perms:
