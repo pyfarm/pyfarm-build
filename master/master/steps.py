@@ -92,13 +92,13 @@ def get_build_factory(project, platform, pyversion, dbtype):
 
     pip_download_cache = "pip_cache"
     if platform == "linux":
-        pip_download_cache = "/home/buildbot/pip_cache"
+        pip_download_cache = "/home/buildbot/.pip/cache"
 
     if platform == "win":
-        pip_download_cache = "C:\\Users\\buildbot\\pip_cache"
+        pip_download_cache = "C:\\Users\\buildbot\\.pip\\cache"
 
     if platform == "mac":
-        pip_download_cache = "/Users/buildbot/pip_cache"
+        pip_download_cache = "/Users/buildbot/.pip/cache"
 
     # Git
     factory.addStep(
