@@ -92,7 +92,7 @@ def get_build_factory(project, platform, pyversion, dbtype):
 
     pip_download_cache = "pip_cache"
     if platform == "linux":
-        pip_download_cache = "/home/buildbot/.pip/cache"
+        pip_download_cache = "/home/buildslave/.pip/cache"
 
     if platform == "win":
         pip_download_cache = "C:\\Users\\buildbot\\.pip\\cache"
