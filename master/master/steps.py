@@ -136,7 +136,7 @@ def get_build_factory(project, platform, pyversion, dbtype):
         env.update(
             DATABASE_NAME=db_name,
             PYFARM_DATABASE_URI=
-            "mysql+mysqlconnector://buildbot:42e203517fe6eafda2bfa96580c4973f9cc265b50afebef2@127.0.0.1/%s" % db_name)
+            "mysql+mysqlconnector://buildbot:42e203517fe6eafda2bfa96580c4973f9cc265b50afebef2@10.8.0.1/%s" % db_name)
 
     if dbtype == "postgres":
         requirements.append("psycopg2")
