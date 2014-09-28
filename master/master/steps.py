@@ -141,6 +141,7 @@ class MasterMakeApplication(BuildStep):
         self.setProperty("appdir", tempdir)
         self.setProperty("master_virtualenv", virtualenv_dir)
         self.setProperty("master_pip", pip)
+        self.finished(SUCCESS)
 
 
 class MasterKillApplication(BuildStep):
@@ -149,6 +150,7 @@ class MasterKillApplication(BuildStep):
             pid = int(pid_file.read().strip())
 
         os.kill(pid, signal.SIGINT)
+        self.finished(SUCCESS)
 
 
 def get_build_factory(project, platform, pyversion, dbtype):
