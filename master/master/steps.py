@@ -287,7 +287,8 @@ def get_build_factory(project, platform, pyversion, dbtype):
                 env=env,
                 command=[Property("nosetests"), "tests", "-s", "--verbose"]))
     else:
-        factory.addStep(Trial(tests="agent.tests"))
+        factory.addStep(
+            Trial(testpath="agent/tests", python=Property("python")))
 
     # Destroy the virtualenv on the remote host
     factory.addStep(
