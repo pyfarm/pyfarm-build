@@ -30,7 +30,7 @@ from buildbot.process.factory import BuildFactory
 from buildbot.steps.source.git import Git
 from buildbot.steps.slave import RemoveDirectory
 from buildbot.steps.shell import ShellCommand, SetPropertyFromCommand
-from buildbot.plugins.steps import Trial
+from buildbot.steps.python_twisted import Trial
 from buildbot.steps.master import MasterShellCommand
 from buildbot.process.properties import Property
 
