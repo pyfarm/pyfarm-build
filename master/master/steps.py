@@ -304,14 +304,16 @@ def get_build_factory(project, platform, pyversion, dbtype):
             Property("tempdir"), flunkOnFailure=False, haltOnFailure=False))
 
     if project == "agent":
-        factory.addStep(uWSGIPIDToProperty(name="get uwsgi pid"))
+        factory.addStep(
+            uWSGIPIDToProperty(name="get uwsgi pid", alwaysRun=True))
 
         factory.addStep(
             MasterShellCommand(
-                ["kill", "-INT", Property("uwsgi_pid")], name="kill uwsgi"))
+                ["kill", "-INT", Property("uwsgi_pid")],
+                name="kill uwsgi", alwaysRun=True))
 
         factory.addStep(
             MasterShellCommand(["rm", "-rf", Property("appdir")],
-                               name="remove appdir"))
+                               name="remove appdir", alwaysRun=True))
 
     return factory
