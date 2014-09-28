@@ -146,12 +146,10 @@ class MasterMakeApplication(BuildStep):
         self.finished(SUCCESS)
 
 
-class MasterKillApplication(BuildStep):
-    def start(self):
+class uWSGIPIDToProperty(BuildStep):
+    def run(self):
         with open(self.getProperty("uwsgi_pid")) as pid_file:
-            pid = int(pid_file.read().strip())
-
-        os.kill(pid, signal.SIGINT)
+            self.setProperty("uwsgi_pid", pid_file.read().strip())
         self.finished(SUCCESS)
 
 
@@ -288,17 +286,17 @@ def get_build_factory(project, platform, pyversion, dbtype):
                 env=env,
                 command=[Property("nosetests"), "tests", "-s", "--verbose"]))
     else:
+        if platform == "linux":
+            master_address = Interpolate("127.0.0.1:%(prop:uwsgi_port)s")
+        else:
+            master_address = Interpolate("10.8.0.1:%(prop:uwsgi_port)s")
+
         factory.addStep(
             ShellCommand(
                 name="run tests",
                 workdir=project,
-                env={
-                    "PYFARM_AGENT_TEST_MASTER": Interpolate(
-                        "127.0.0.1:%(prop:uwsgi_port)s")
-                },
-                command=[Property("trial"), "tests"]
-            )
-        )
+                env={"PYFARM_AGENT_TEST_MASTER": master_address},
+                command=[Property("trial"), "tests"]))
 
     # Destroy the virtualenv on the remote host
     factory.addStep(
@@ -306,11 +304,14 @@ def get_build_factory(project, platform, pyversion, dbtype):
             Property("tempdir"), flunkOnFailure=False, haltOnFailure=False))
 
     if project == "agent":
-        factory.addStep(
-            MasterKillApplication(name="kill uwsgi"))
+        factory.addStep(uWSGIPIDToProperty(name="get uwsgi pid"))
 
         factory.addStep(
-            MasterShellCommand(["rm", "-rfv", Property("appdir")],
+            MasterShellCommand(
+                ["kill", "-INT", Property("uwsgi_pid")], name="kill uwsgi"))
+
+        factory.addStep(
+            MasterShellCommand(["rm", "-rf", Property("appdir")],
                                name="remove appdir"))
 
     return factory
