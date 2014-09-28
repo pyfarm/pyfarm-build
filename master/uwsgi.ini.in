@@ -1,0 +1,22 @@
+[uwsgi]
+# === Process Management ===
+master = true
+processes = 4
+py-autorelaod = false
+pidfile = %(pidfile)s
+daemonize = %(log)s
+http = 127.0.0.1:%(bind_port)s
+http = 10.8.0.1:%(bind_port)s
+
+# === Environment ===
+env = PYFARM_APP_INSTANCE=true
+env = PYFARM_DEV_APP_DB_DROP_ALL=false
+env = PYFARM_DEV_APP_DB_CREATE_ALL=true
+env = PYFARM_DEV_ALLOW_AGENT_LOOPBACK_ADDRESSES=true
+env = PYFARM_DATABASE_URI=sqlite:///%(appdir)s/pyfarm.sqlite
+env = PYFARM_CONFIG=debug
+
+# virtual environment setup
+virtualenv = %(virtualenv)s
+module = pyfarm.master.entrypoints
+callable = app
