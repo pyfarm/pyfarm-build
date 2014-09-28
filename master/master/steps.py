@@ -182,9 +182,8 @@ def get_build_factory(project, platform, pyversion, dbtype):
                 REPO_URL.format(project="core"), repo_core])
         else:
             subprocess.check_call([
-                "git", "-C", repo_core, "reset", "--hard", "origin/master"])
-            subprocess.check_call([
-                "git", "-C", repo_core, "pull"])
+                "git", "reset", "--hard", "origin/master"], cwd=repo_core)
+            subprocess.check_call(["git", "pull"], cwd=repo_core)
 
         # Pull or create master repo
         if not isdir(repo_master):
@@ -193,9 +192,8 @@ def get_build_factory(project, platform, pyversion, dbtype):
                 REPO_URL.format(project="master"), repo_master])
         else:
             subprocess.check_call([
-                "git", "-C", repo_master, "reset", "--hard", "origin/master"])
-            subprocess.check_call([
-                "git", "-C", repo_master, "pull"])
+                "git", "reset", "--hard", "origin/master"], cwd=repo_master)
+            subprocess.check_call(["git", "pull"], cwd=repo_master)
 
         factory.addStep(MasterMakeApplication(name="make application"))
 
