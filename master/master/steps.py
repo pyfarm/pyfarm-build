@@ -30,6 +30,7 @@ from buildbot.process.factory import BuildFactory
 from buildbot.steps.source.git import Git
 from buildbot.steps.slave import RemoveDirectory
 from buildbot.steps.shell import ShellCommand, SetPropertyFromCommand
+from buildbot.plugins.steps import Trial
 from buildbot.steps.master import MasterShellCommand
 from buildbot.process.properties import Property
 
@@ -240,7 +241,11 @@ def get_build_factory(project, platform, pyversion, dbtype):
             command=[Property("pip"), "install", "-e", ".", "--egg"]))
 
     # Install test packages
-    requirements = ["nose"]
+    if project != "agent":
+        requirements = ["nose"]
+    else:
+        requirements = []
+
     env = {}
     if not pyversion.startswith("3."):
         requirements.append("mock")
@@ -281,6 +286,8 @@ def get_build_factory(project, platform, pyversion, dbtype):
                 workdir=project,
                 env=env,
                 command=[Property("nosetests"), "tests", "-s", "--verbose"]))
+    else:
+        factory.addStep(Trial(tests="agent.tests"))
 
     # Destroy the virtualenv on the remote host
     factory.addStep(
