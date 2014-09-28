@@ -94,7 +94,7 @@ class CreateEnvironment(SetPropertyFromCommand):
 
 
 class MasterMakeApplication(BuildStep):
-    def start(self):
+    def run(self):
         # Retrieve socket to listen on
         bind_port = None
         while True:
@@ -143,14 +143,14 @@ class MasterMakeApplication(BuildStep):
         self.setProperty("appdir", tempdir)
         self.setProperty("master_virtualenv", virtualenv_dir)
         self.setProperty("master_pip", pip)
-        self.finished(SUCCESS)
+        return SUCCESS
 
 
 class uWSGIPIDToProperty(BuildStep):
     def run(self):
         with open(self.getProperty("uwsgi_pid")) as pid_file:
             self.setProperty("uwsgi_pid", pid_file.read().strip())
-        self.finished(SUCCESS)
+        return SUCCESS
 
 
 def get_build_factory(project, platform, pyversion, dbtype):
