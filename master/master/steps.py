@@ -15,13 +15,22 @@
 # limitations under the License.
 
 import json
+import tempfile
+import os
+import signal
+import socket
+import subprocess
 from functools import partial
+from os.path import isdir, join
 
+import virtualenv
+
+from buildbot.process.buildstep import BuildStep, SUCCESS
 from buildbot.process.factory import BuildFactory
 from buildbot.steps.source.git import Git
-from buildbot.steps.shell import SetPropertyFromCommand
 from buildbot.steps.slave import RemoveDirectory
-from buildbot.steps.shell import ShellCommand
+from buildbot.steps.shell import ShellCommand, SetPropertyFromCommand
+from buildbot.steps.master import MasterShellCommand
 from buildbot.process.properties import Property
 
 CREATE_ENVIRONMENT = """
@@ -65,10 +74,6 @@ print(json.dumps(
     "nosetests": os.path.join(virtualenv_root, bin_dir, nose_bin_name)}))
 """.strip()
 
-CREATE_REQUIREMENTS = """
-
-""".strip()
-
 REPO_URL = "https://github.com/pyfarm/pyfarm-{project}"
 
 Clone = partial(Git, clobberOnFailure=True, progress=True, mode='full')
@@ -87,6 +92,68 @@ class CreateEnvironment(SetPropertyFromCommand):
         return data
 
 
+class MasterMakeApplication(BuildStep):
+    def start(self):
+        # Retrieve socket to listen on
+        bind_port = None
+        while True:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                sock.bind(("", 0))
+                sock.listen(1)
+
+            except Exception:
+                continue
+
+            else:
+                _, bind_port = sock.getsockname()
+                break
+
+            finally:
+                sock.close()
+
+        tempdir = tempfile.mkdtemp()
+        appdir = join(tempdir, "app")
+        virtualenv_dir = join(appdir, "virtualenv")
+        virtualenv.create_environment(virtualenv_dir)
+        pip = join(virtualenv_dir, "bin", "pip")
+        uwsgi = join(virtualenv_dir, "bin", "uwsgi")
+        uwsgi_log = join(appdir, "uwsgi.log")
+        uwsgi_pid = join(appdir, "uwsgi.pid")
+
+        # Create uwsgi configuration file from template
+        with open("master/uwsgi.ini.in") as uwsgi_ini:
+            uwsgi_ini = uwsgi_ini.read() % dict(
+                bind_port=bind_port,
+                virtualenv=virtualenv_dir,
+                log=uwsgi_log,
+                pidfile=uwsgi_pid,
+                appdir=appdir)
+
+        # Write uwsgi configuration file
+        uwsgi_ini_out = join(appdir, "uwsgi.ini")
+        with open(uwsgi_ini_out, "w") as uwsgi_ini_file:
+            uwsgi_ini_file.write(uwsgi_ini)
+
+        self.setProperty("uwsgi_ini", uwsgi_ini_out)
+        self.setProperty("uwsgi_pid", uwsgi_log)
+        self.setProperty("uwsgi", uwsgi)
+        self.setProperty("appdir", tempdir)
+        self.setProperty("master_virtualenv", virtualenv_dir)
+        self.setProperty("master_pip", pip)
+
+        return SUCCESS
+
+
+class MasterKillApplication(BuildStep):
+    def start(self):
+        with open(self.getProperty("uwsgi_pid")) as pid_file:
+            pid = int(pid_file.read().strip())
+
+        os.kill(pid, signal.SIGINT)
+        return SUCCESS
+
+
 def get_build_factory(project, platform, pyversion, dbtype):
     factory = BuildFactory()
 
@@ -99,6 +166,62 @@ def get_build_factory(project, platform, pyversion, dbtype):
 
     if platform == "mac":
         pip_download_cache = "/Users/buildbot/.pip/cache"
+
+    # Master side setup for the agent
+    if project == "agent":
+        # Setup initial clones
+        temproot = join(tempfile.gettempdir(), "buildbot")
+        repos = join(temproot, "repos")
+        repo_core = join(repos, "pyfarm-core", pyversion)
+        repo_master = join(repos, "pyfarm-master", pyversion)
+
+        # Pull or create core repo
+        if not isdir(repo_core):
+            subprocess.check_call([
+                "git", "clone",
+                REPO_URL.format(project="core"), repo_core])
+        else:
+            subprocess.check_call([
+                "git", "-C", repo_core, "reset", "--hard", "origin/master"])
+            subprocess.check_call([
+                "git", "-C", repo_core, "pull"])
+
+        # Pull or create master repo
+        if not isdir(repo_master):
+            subprocess.check_call([
+                "git", "clone",
+                REPO_URL.format(project="master"), repo_master])
+        else:
+            subprocess.check_call([
+                "git", "-C", repo_master, "reset", "--hard", "origin/master"])
+            subprocess.check_call([
+                "git", "-C", repo_master, "pull"])
+
+        factory.addStep(MasterMakeApplication(name="make application"))
+
+        # Every test run should reset the repos and pull
+        for path in (repo_core, repo_master):
+            factory.addStep(
+                MasterShellCommand(
+                    ["git", "reset", "--hard", "origin/master"],
+                    path=path, name="git reset %s" % path))
+            factory.addStep(
+                MasterShellCommand(
+                    ["git", "pull"],
+                    path=path, name="git pull %s" % path))
+            factory.addStep(
+                MasterShellCommand(
+                    [Property("master_pip"), "install", path],
+                    name="install %s" % path))
+        factory.addStep(
+            MasterShellCommand(
+                [Property("master_pip"), "install", "uwsgi"],
+                name="install uwsgi"))
+
+        factory.addStep(
+            MasterShellCommand(
+                [Property("uwsgi"), Property("uwsgi_ini")],
+                name="run uwsgi"))
 
     # Git
     factory.addStep(
@@ -162,9 +285,17 @@ def get_build_factory(project, platform, pyversion, dbtype):
                 env=env,
                 command=[Property("nosetests"), "tests", "-s", "--verbose"]))
 
-    # Destroy the virtualenv
+    # Destroy the virtualenv on the remote host
     factory.addStep(
         RemoveDirectory(
             Property("tempdir"), flunkOnFailure=False, haltOnFailure=False))
+
+    if project == "agent":
+        factory.addStep(
+            MasterKillApplication(name="kill uwsgi"))
+
+        factory.addStep(
+            MasterShellCommand(["rm", "-rfv", Property("appdir")],
+                               name="remove appdir"))
 
     return factory
