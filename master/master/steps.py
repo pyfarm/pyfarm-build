@@ -30,9 +30,8 @@ from buildbot.process.factory import BuildFactory
 from buildbot.steps.source.git import Git
 from buildbot.steps.slave import RemoveDirectory
 from buildbot.steps.shell import ShellCommand, SetPropertyFromCommand
-from buildbot.steps.python_twisted import Trial
 from buildbot.steps.master import MasterShellCommand
-from buildbot.process.properties import Property
+from buildbot.process.properties import Property, Interpolate
 
 CREATE_ENVIRONMENT = """
 from __future__ import print_function
@@ -71,6 +70,7 @@ subprocess.check_call(mkvirtualenv)
 print(json.dumps(
     {"virtualenv": virtualenv_root, "tempdir": tempdir,
     "python": os.path.join(virtualenv_root, bin_dir, python_bin_name),
+    "trial": os.path.join(virtualenv_root, bin_dir, "trial"),
     "pip": os.path.join(virtualenv_root, bin_dir, pip_bin_name),
     "nosetests": os.path.join(virtualenv_root, bin_dir, nose_bin_name)}))
 """.strip()
@@ -139,6 +139,7 @@ class MasterMakeApplication(BuildStep):
         self.setProperty("uwsgi_ini", uwsgi_ini_out)
         self.setProperty("uwsgi_pid", uwsgi_pid)
         self.setProperty("uwsgi", uwsgi)
+        self.setProperty("uwsgi_port", str(bind_port))
         self.setProperty("appdir", tempdir)
         self.setProperty("master_virtualenv", virtualenv_dir)
         self.setProperty("master_pip", pip)
@@ -288,7 +289,16 @@ def get_build_factory(project, platform, pyversion, dbtype):
                 command=[Property("nosetests"), "tests", "-s", "--verbose"]))
     else:
         factory.addStep(
-            Trial(testpath="agent/tests", python=Property("python")))
+            ShellCommand(
+                name="run tests",
+                workdir=project,
+                env={
+                    "PYFARM_AGENT_TEST_MASTER": Interpolate(
+                        "127.0.0.1:%(prop:uwsgi_port)s")
+                },
+                command=[Property("trial"), "tests"]
+            )
+        )
 
     # Destroy the virtualenv on the remote host
     factory.addStep(
