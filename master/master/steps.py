@@ -136,7 +136,7 @@ class MasterMakeApplication(BuildStep):
             uwsgi_ini_file.write(uwsgi_ini)
 
         self.setProperty("uwsgi_ini", uwsgi_ini_out)
-        self.setProperty("uwsgi_pid", uwsgi_log)
+        self.setProperty("uwsgi_pid", uwsgi_pid)
         self.setProperty("uwsgi", uwsgi)
         self.setProperty("appdir", tempdir)
         self.setProperty("master_virtualenv", virtualenv_dir)
