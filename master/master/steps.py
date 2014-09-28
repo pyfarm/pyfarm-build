@@ -24,8 +24,6 @@ from functools import partial
 from os.path import isdir, join
 
 import virtualenv
-from twisted.internet.defer import Deferred
-from twisted.internet import reactor
 
 from buildbot.process.buildstep import BuildStep, SUCCESS
 from buildbot.process.factory import BuildFactory
@@ -96,8 +94,6 @@ class CreateEnvironment(SetPropertyFromCommand):
 
 class MasterMakeApplication(BuildStep):
     def start(self):
-        finished = Deferred()
-
         # Retrieve socket to listen on
         bind_port = None
         while True:
@@ -145,20 +141,14 @@ class MasterMakeApplication(BuildStep):
         self.setProperty("appdir", tempdir)
         self.setProperty("master_virtualenv", virtualenv_dir)
         self.setProperty("master_pip", pip)
-        reactor.callLater(3, lambda *_: finished.callback(SUCCESS))
-        return finished
 
 
 class MasterKillApplication(BuildStep):
     def start(self):
-        finished = Deferred()
         with open(self.getProperty("uwsgi_pid")) as pid_file:
             pid = int(pid_file.read().strip())
 
         os.kill(pid, signal.SIGINT)
-        reactor.callLater(3, lambda *_: finished.callback(SUCCESS))
-
-        return finished
 
 
 def get_build_factory(project, platform, pyversion, dbtype):
