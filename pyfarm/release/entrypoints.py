@@ -115,6 +115,9 @@ def release():
     create_tag(args.setup_py, release_version, dry_run=args.dry_run)
     release_to_pypi(args.setup_py, dry_run=args.dry_run)
 
+    # TODO: create release on github
+    # TODO: add sdist file to release on github
+    # TODO: populate release on github with all issues/PRs assoicated with it
 
 
 
